@@ -2,16 +2,16 @@ import os
 import asyncio
 import time
 import streamlit as st
-import whisper
 from deep_translator import GoogleTranslator
 import edge_tts
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
+from groq import Groq
 
 # 设置页面
-st.set_page_config(page_title="翻译视频", page_icon="阿杰", layout="centered")
+st.set_page_config(page_title="翻译视频", page_icon="🎬", layout="centered")
 
-# Custom CSS 提升界面美观度
+# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -68,28 +68,33 @@ LANGUAGE_MAP = {
     "葡萄牙语": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
 }
 
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "gsk_YourFreeGroqKeyHere") # Dán API key vào đây
+
 def extract_audio(video_path, audio_output_path):
     video = VideoFileClip(video_path)
+    # Tải audio WAV nhẹ hơn
     video.audio.write_audiofile(audio_output_path, logger=None)
     video.close()
 
-@st.cache_resource
-def load_whisper_model():
-    return whisper.load_model("base")
-
-def transcribe_audio(audio_path):
-    model = load_whisper_model()
-    result = model.transcribe(audio_path, task="transcribe")
-    return result['language'], result['text']
+def transcribe_audio_fast(audio_path):
+    # Sử dụng Groq API gọi Whisper Large V3 siêu tốc
+    client = Groq(api_key=GROQ_API_KEY)
+    with open(audio_path, "rb") as file:
+        transcription = client.audio.transcriptions.create(
+            file=(os.path.basename(audio_path), file.read()),
+            model="whisper-large-v3",
+            response_format="verbose_json",
+        )
+    return transcription.language, transcription.text
 
 def translate_text(text, target_lang):
     for attempt in range(3):
         try:
             translated = GoogleTranslator(source='auto', target=target_lang).translate(text)
             return translated
-        except Exception as e:
+        except Exception:
             if attempt == 2:
-                raise e
+                raise
             time.sleep(2)
 
 async def text_to_speech(text, output_audio_path, voice):
@@ -105,12 +110,19 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     else:
         final_video = video.set_audio(new_audio)
         
-    final_video.write_videofile(output_video_path, codec="libx264", audio_codec="aac", logger=None)
+    # Thêm preset="ultrafast" để tăng tốc xuất video gấp 3 lần
+    final_video.write_videofile(
+        output_video_path, 
+        codec="libx264", 
+        audio_codec="aac", 
+        preset="ultrafast", 
+        logger=None
+    )
     video.close()
     new_audio.close()
 
 # 主界面
-st.markdown("<div class='main-header'><h1>翻译视频</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>🎬 翻译视频 (极速版)</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([5, 1])
 with col2:
@@ -130,18 +142,17 @@ if uploaded_file is not None:
                 f.write(uploaded_file.getbuffer())
             
             output_video_path = "temp_output.mp4"
-            temp_audio = "temp_original_audio.mp3"
+            temp_audio = "temp_original_audio.wav"
             temp_translated_audio = "temp_translated_audio.mp3"
             
             try:
                 st.text("从视频中提取音频。...")
                 extract_audio(input_video_path, temp_audio)
                 
-                st.text("利用人工智能分析和识别语音。...")
-                detected_lang, original_text = transcribe_audio(temp_audio)
+                st.text("利用 Groq AI 极速识别语音 (Whisper Large v3)...")
+                detected_lang, original_text = transcribe_audio_fast(temp_audio)
                 st.info(f"本源语言: **{detected_lang}**")
                 
-                # Hiển thị văn bản gốc
                 st.write("📝 **本原内容:**")
                 st.code(original_text, language=None)
                 
@@ -151,7 +162,6 @@ if uploaded_file is not None:
                 st.text(f"正在翻译到 {selected_language_name}...")
                 translated_text = translate_text(original_text, target_lang_code)
                 
-                # Hiển thị văn bản dịch kèm NÚT COPY góc phải
                 st.write("🌐 **内用翻译 (点击右上角按钮复制):**")
                 st.code(translated_text, language=None)
                 
