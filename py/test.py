@@ -8,7 +8,7 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 # 设置页面
-st.set_page_config(page_title="翻译视频", page_icon="🎬", layout="centered")
+st.set_page_config(page_title="翻译视频", page_icon="阿杰", layout="centered")
 
 # Custom CSS
 st.markdown("""
@@ -33,13 +33,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 密码验证
-APP_PASSWORD = "123456"
+APP_PASSWORD = "ajiechanbomaydi"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    st.markdown("<div class='main-header'><h1>🔒 请输入密码</h1></div>", unsafe_allow_html=True)
+    st.markdown("<div class='main-header'><h1>请输入密码</h1></div>", unsafe_allow_html=True)
     with st.form("login_form"):
         pwd_input = st.text_input("密码:", type="password")
         submit_btn = st.form_submit_button("登录")
@@ -67,13 +67,11 @@ LANGUAGE_MAP = {
 
 def extract_audio(video_path, audio_output_path):
     video = VideoFileClip(video_path)
-    # Tải audio nhanh dưới dạng WAV
     video.audio.write_audiofile(audio_output_path, logger=None)
     video.close()
 
 @st.cache_resource
 def load_whisper_model():
-    # Đổi sang mô hình 'tiny' để xử lý siêu nhanh trên Streamlit Cloud
     return whisper.load_model("tiny")
 
 def transcribe_audio(audio_path):
@@ -81,9 +79,17 @@ def transcribe_audio(audio_path):
     result = model.transcribe(audio_path, task="transcribe")
     return result['language'], result['text']
 
+import time
+
 def translate_text(text, target_lang):
-    translated = GoogleTranslator(source='auto', target=target_lang).translate(text)
-    return translated
+    for attempt in range(3):
+        try:
+            translated = GoogleTranslator(source='auto', target=target_lang).translate(text)
+            return translated
+        except Exception as e:
+            if attempt == 2: #
+                raise e
+            time.sleep(2) # 
 
 async def text_to_speech(text, output_audio_path, voice):
     communicate = edge_tts.Communicate(text, voice)
@@ -98,7 +104,6 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     else:
         final_video = video.set_audio(new_audio)
         
-    # preset="ultrafast" giúp xuất video nhanh gấp 3 lần
     final_video.write_videofile(
         output_video_path, 
         codec="libx264", 
@@ -110,7 +115,7 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     new_audio.close()
 
 # 主界面
-st.markdown("<div class='main-header'><h1>🎬 翻译视频</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>翻译视频</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([5, 1])
 with col2:
