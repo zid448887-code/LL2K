@@ -5,7 +5,7 @@ import tempfile
 import subprocess
 import streamlit as st
 from faster_whisper import WhisperModel
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 import edge_tts
 
 # Thiết lập trang
@@ -81,7 +81,7 @@ def extract_audio(video_path, audio_output_path):
     ]
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-# Model Whisper siêu nhẹ, siêu nhanh
+# Model Whisper tối ưu
 @st.cache_resource
 def load_whisper_model():
     return WhisperModel("tiny", device="cpu", compute_type="int8")
@@ -92,27 +92,42 @@ def transcribe_audio(audio_path):
     text = " ".join([segment.text.strip() for segment in segments])
     return info.language, text
 
-# Dịch văn bản an toàn (chia nhỏ nếu câu quá dài để tránh lỗi API)
+# Hàm dịch thông minh: Thử Google trước, nếu bị lỗi 500 sẽ dùng MyMemory dịch dự phòng
 def translate_text(text, target_lang):
     if not text.strip():
         return ""
     
-    # Chia nhỏ văn bản theo độ dài 4000 ký tự
-    max_chunk = 4000
-    chunks = [text[i:i + max_chunk] for i in range(0, len(text), max_chunk)]
+    # Chia nhỏ văn bản tối đa 500 ký tự để tránh quá tải API
+    chunks = [text[i:i + 450] for i in range(0, len(text), 450)]
     translated_chunks = []
     
     for chunk in chunks:
-        for attempt in range(3):
-            try:
-                res = GoogleTranslator(source='auto', target=target_lang).translate(chunk)
+        translated = False
+        # Cách 1: Dùng Google Translate
+        try:
+            res = GoogleTranslator(source='auto', target=target_lang).translate(chunk)
+            if res:
                 translated_chunks.append(res)
-                break
-            except Exception as e:
-                if attempt == 2:
-                    raise e
-                time.sleep(1)
+                translated = True
+        except Exception:
+            pass
+        
+        # Cách 2: Nếu Google lỗi 500 -> Chuyển sang MyMemory Translator
+        if not translated:
+            try:
+                res = MyMemoryTranslator(source='auto', target=target_lang).translate(chunk)
+                if res:
+                    translated_chunks.append(res)
+                    translated = True
+            except Exception:
+                pass
                 
+        # Nếu cả 2 đều lỗi thì giữ lại đoạn gốc tránh mất dữ liệu
+        if not translated:
+            translated_chunks.append(chunk)
+            
+        time.sleep(0.3) # Giảm tần suất request
+        
     return " ".join(translated_chunks)
 
 # Tạo giọng nói không lo bị treo Loop Asyncio
@@ -128,7 +143,7 @@ def run_tts_sync(text, output_audio_path, voice):
     finally:
         loop.close()
 
-# Ghép Audio vào Video cực nhanh (Copy stream, không render lại video)
+# Ghép Audio vào Video giữ nguyên toàn bộ độ dài video gốc
 def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     command = [
         "ffmpeg", "-y",
@@ -138,13 +153,12 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
         "-c:a", "aac",
         "-map", "0:v:0",
         "-map", "1:a:0",
-        "-shortest",
         output_video_path
     ]
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # Giao diện chính
-st.markdown("<div class='main-header'><h1>🎬 翻译视频 (极速版)</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>🎬 翻译视频 (稳定修复版)</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([5, 1])
 with col2:
@@ -172,7 +186,7 @@ if uploaded_file is not None:
                     st.text("从视频中提取音频...")
                     extract_audio(input_video_path, temp_audio)
                     
-                    st.text("利用 AI 极速分析和识别语音...")
+                    st.text("利用 AI 识别语音...")
                     detected_lang, original_text = transcribe_audio(temp_audio)
                     st.info(f"本源语言: **{detected_lang}**")
                     
