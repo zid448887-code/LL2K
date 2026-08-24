@@ -69,8 +69,11 @@ LANGUAGE_MAP = {
     "葡萄牙语": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
 }
 
-GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "gsk_YourFreeGroqKeyHere")
-
+# Kiểm tra an toàn: Nếu chạy ở máy cá nhân không có secrets thì dùng key mặc định
+try:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except Exception:
+    GROQ_API_KEY = "gsk_YourFreeGroqKeyHere"  # Dán Groq API Key thật của bạn vào đây nếu chạy ở máy Mac
 def extract_audio(video_path, audio_output_path):
     command = [
         "ffmpeg", "-y",

@@ -1,5 +1,5 @@
 streamlit
-groq
+openai-whisper
 deep-translator
 edge-tts
 moviepy
