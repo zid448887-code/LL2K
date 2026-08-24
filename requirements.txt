@@ -3,3 +3,4 @@ groq
 deep-translator
 edge-tts
 moviepy
+ffmpeg-python

@@ -71,10 +71,17 @@ LANGUAGE_MAP = {
 GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "gsk_YourFreeGroqKeyHere") # Dán API key vào đây
 
 def extract_audio(video_path, audio_output_path):
-    video = VideoFileClip(video_path)
-    # Tải audio WAV nhẹ hơn
-    video.audio.write_audiofile(audio_output_path, logger=None)
-    video.close()
+    # Dùng trực tiếp ffmpeg qua subprocess để tránh lỗi MoviePy
+    command = [
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-vn",                      # Bỏ luồng video
+        "-acodec", "pcm_s16le",     # Format WAV chuẩn
+        "-ar", "16000",             # Sampling rate 16kHz tối ưu cho Whisper
+        "-ac", "1",                 # Mono audio
+        audio_output_path
+    ]
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def transcribe_audio_fast(audio_path):
     # Sử dụng Groq API gọi Whisper Large V3 siêu tốc
