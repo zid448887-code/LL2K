@@ -1,4 +1,5 @@
 streamlit
-faster-whisper
+openai-whisper
 deep-translator
 edge-tts
+moviepy
