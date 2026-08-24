@@ -1,13 +1,13 @@
 import os
 import asyncio
 import time
-import subprocess   # <-- Thêm dòng này vào đây!
+import subprocess
 import streamlit as st
+import whisper
 from deep_translator import GoogleTranslator
 import edge_tts
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
-from groq import Groq
 
 # 设置页面
 st.set_page_config(page_title="翻译视频", page_icon="🎬", layout="centered")
@@ -69,11 +69,6 @@ LANGUAGE_MAP = {
     "葡萄牙语": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
 }
 
-# Kiểm tra an toàn: Nếu chạy ở máy cá nhân không có secrets thì dùng key mặc định
-try:
-    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-except Exception:
-    GROQ_API_KEY = "gsk_YourFreeGroqKeyHere"  # Dán Groq API Key thật của bạn vào đây nếu chạy ở máy Mac
 def extract_audio(video_path, audio_output_path):
     command = [
         "ffmpeg", "-y",
@@ -86,15 +81,15 @@ def extract_audio(video_path, audio_output_path):
     ]
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+@st.cache_resource
+def load_whisper_model():
+    # Sử dụng model "tiny" để tăng tốc nhận diện giọng nói tối đa
+    return whisper.load_model("tiny")
+
 def transcribe_audio_fast(audio_path):
-    client = Groq(api_key=GROQ_API_KEY)
-    with open(audio_path, "rb") as file:
-        transcription = client.audio.transcriptions.create(
-            file=(os.path.basename(audio_path), file.read()),
-            model="whisper-large-v3",
-            response_format="verbose_json",
-        )
-    return transcription.language, transcription.text
+    model = load_whisper_model()
+    result = model.transcribe(audio_path, task="transcribe")
+    return result.get('language', 'auto'), result.get('text', '')
 
 def translate_text(text, target_lang):
     for attempt in range(3):
@@ -119,6 +114,7 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     else:
         final_video = video.set_audio(new_audio)
         
+    # Thêm preset="ultrafast" để render video siêu tốc
     final_video.write_videofile(
         output_video_path, 
         codec="libx264", 
@@ -157,7 +153,7 @@ if uploaded_file is not None:
                 st.text("从视频中提取音频。...")
                 extract_audio(input_video_path, temp_audio)
                 
-                st.text("利用 Groq AI 极速识别语音 (Whisper Large v3)...")
+                st.text("利用 AI 极速识别语音...")
                 detected_lang, original_text = transcribe_audio_fast(temp_audio)
                 st.info(f"本源语言: **{detected_lang}**")
                 
