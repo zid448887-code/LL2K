@@ -3,11 +3,9 @@ import asyncio
 import time
 import subprocess
 import streamlit as st
-import whisper
+from faster_whisper import WhisperModel
 from deep_translator import GoogleTranslator
 import edge_tts
-from moviepy.video.io.VideoFileClip import VideoFileClip
-from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 # 设置页面
 st.set_page_config(page_title="翻译视频", page_icon="🎬", layout="centered")
@@ -83,13 +81,14 @@ def extract_audio(video_path, audio_output_path):
 
 @st.cache_resource
 def load_whisper_model():
-    # Sử dụng model "tiny" để tăng tốc nhận diện giọng nói tối đa
-    return whisper.load_model("tiny")
+    # Sử dụng faster-whisper tiny chạy trên CPU bằng int8 (cực nhẹ và cực nhanh)
+    return WhisperModel("tiny", device="cpu", compute_type="int8")
 
 def transcribe_audio_fast(audio_path):
     model = load_whisper_model()
-    result = model.transcribe(audio_path, task="transcribe")
-    return result.get('language', 'auto'), result.get('text', '')
+    segments, info = model.transcribe(audio_path, beam_size=1)
+    text = "".join([segment.text for segment in segments])
+    return info.language, text
 
 def translate_text(text, target_lang):
     for attempt in range(3):
@@ -106,27 +105,22 @@ async def text_to_speech(text, output_audio_path, voice):
     await communicate.save(output_audio_path)
 
 def merge_audio_to_video(video_path, new_audio_path, output_video_path):
-    video = VideoFileClip(video_path)
-    new_audio = AudioFileClip(new_audio_path)
-    
-    if hasattr(video, "with_audio"):
-        final_video = video.with_audio(new_audio)
-    else:
-        final_video = video.set_audio(new_audio)
-        
-    # Thêm preset="ultrafast" để render video siêu tốc
-    final_video.write_videofile(
-        output_video_path, 
-        codec="libx264", 
-        audio_codec="aac", 
-        preset="ultrafast", 
-        logger=None
-    )
-    video.close()
-    new_audio.close()
+    # Ghép nhạc bằng FFmpeg trực tiếp (-c:v copy), không mã hóa lại video -> Nhanh tức thì!
+    command = [
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-i", new_audio_path,
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-shortest",
+        output_video_path
+    ]
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # 主界面
-st.markdown("<div class='main-header'><h1>🎬 翻译视频 (极速版)</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>🎬 翻译视频 (极速 organization 版)</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([5, 1])
 with col2:
@@ -189,6 +183,6 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f"出现错误: {e}")
             finally:
-                for f in [input_video_path, temp_audio, temp_translated_audio]:
+                for f in [input_video_path, temp_audio, temp_translated_audio, output_video_path]:
                     if os.path.exists(f): 
                         os.remove(f)
