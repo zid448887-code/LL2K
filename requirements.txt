@@ -2,5 +2,5 @@ streamlit
 openai-whisper
 deep-translator
 edge-tts
-moviepy
+moviepy==1.0.3
 torch
