@@ -1,6 +1,7 @@
 import os
 import asyncio
 import time
+import subprocess   # <-- Thêm dòng này vào đây!
 import streamlit as st
 from deep_translator import GoogleTranslator
 import edge_tts
@@ -68,23 +69,21 @@ LANGUAGE_MAP = {
     "葡萄牙语": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
 }
 
-GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "gsk_YourFreeGroqKeyHere") # Dán API key vào đây
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "gsk_YourFreeGroqKeyHere")
 
 def extract_audio(video_path, audio_output_path):
-    # Dùng trực tiếp ffmpeg qua subprocess để tránh lỗi MoviePy
     command = [
         "ffmpeg", "-y",
         "-i", video_path,
-        "-vn",                      # Bỏ luồng video
-        "-acodec", "pcm_s16le",     # Format WAV chuẩn
-        "-ar", "16000",             # Sampling rate 16kHz tối ưu cho Whisper
-        "-ac", "1",                 # Mono audio
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-ar", "16000",
+        "-ac", "1",
         audio_output_path
     ]
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def transcribe_audio_fast(audio_path):
-    # Sử dụng Groq API gọi Whisper Large V3 siêu tốc
     client = Groq(api_key=GROQ_API_KEY)
     with open(audio_path, "rb") as file:
         transcription = client.audio.transcriptions.create(
@@ -117,7 +116,6 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     else:
         final_video = video.set_audio(new_audio)
         
-    # Thêm preset="ultrafast" để tăng tốc xuất video gấp 3 lần
     final_video.write_videofile(
         output_video_path, 
         codec="libx264", 
