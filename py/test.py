@@ -110,7 +110,7 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     new_audio.close()
 
 # 主界面
-st.markdown("<div class='main-header'><h1>🎬 翻译视频</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>翻译视频</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([5, 1])
 with col2:
