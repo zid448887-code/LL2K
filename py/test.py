@@ -9,7 +9,7 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 # 设置页面
-st.set_page_config(page_title="翻译视频", page_icon="🎬", layout="centered")
+st.set_page_config(page_title="翻译视频", page_icon="阿杰", layout="centered")
 
 # Custom CSS 提升界面美观度
 st.markdown("""
@@ -36,13 +36,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 1. 密码验证功能
-APP_PASSWORD = "123456"
+APP_PASSWORD = "ajiechanbomaydi"
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    st.markdown("<div class='main-header'><h1>🔒 请输入密码</h1><p>请输入访问密码以继续使用系统</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='main-header'><h1>请输入密码</h1><p>请输入访问密码以继续使用系统</p></div>", unsafe_allow_html=True)
     with st.form("login_form"):
         pwd_input = st.text_input("密码:", type="password")
         submit_btn = st.form_submit_button("登录")
@@ -55,7 +55,7 @@ if not st.session_state["authenticated"]:
                 st.error("密码错误，请重试!")
     st.stop()
 
-# 2. 语言列表（新增俄语和葡萄牙语）
+# 2. 语言列表
 LANGUAGE_MAP = {
     "越南": {"lang": "vi", "voice": "vi-VN-HoaiMyNeural"},
     "英语": {"lang": "en", "voice": "en-US-AriaNeural"},
@@ -83,7 +83,6 @@ def transcribe_audio(audio_path):
     return result['language'], result['text']
 
 def translate_text(text, target_lang):
-    # Thêm cơ chế retry 3 lần đề phòng Google trả về lỗi Server Error 500
     for attempt in range(3):
         try:
             translated = GoogleTranslator(source='auto', target=target_lang).translate(text)
@@ -101,7 +100,6 @@ def merge_audio_to_video(video_path, new_audio_path, output_video_path):
     video = VideoFileClip(video_path)
     new_audio = AudioFileClip(new_audio_path)
     
-    # Tự động tương thích cả MoviePy v1 và v2
     if hasattr(video, "with_audio"):
         final_video = video.with_audio(new_audio)
     else:
@@ -142,14 +140,20 @@ if uploaded_file is not None:
                 st.text("利用人工智能分析和识别语音。...")
                 detected_lang, original_text = transcribe_audio(temp_audio)
                 st.info(f"本源语言: **{detected_lang}**")
-                st.write(f"📝 **本原内容:** {original_text}")
+                
+                # Hiển thị văn bản gốc
+                st.write("📝 **本原内容:**")
+                st.code(original_text, language=None)
                 
                 target_lang_code = LANGUAGE_MAP[selected_language_name]["lang"]
                 target_voice = LANGUAGE_MAP[selected_language_name]["voice"]
                 
                 st.text(f"正在翻译到 {selected_language_name}...")
                 translated_text = translate_text(original_text, target_lang_code)
-                st.write(f"🌐 **内用翻译:** {translated_text}")
+                
+                # Hiển thị văn bản dịch kèm NÚT COPY góc phải
+                st.write("🌐 **内用翻译 (点击右上角按钮复制):**")
+                st.code(translated_text, language=None)
                 
                 st.text("正在弄新的声音...")
                 asyncio.run(text_to_speech(translated_text, temp_translated_audio, target_voice))
@@ -171,7 +175,6 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f"出现错误: {e}")
             finally:
-                # Chỉ dọn dẹp file tạm, giữ lại output cho người dùng tải
                 for f in [input_video_path, temp_audio, temp_translated_audio]:
                     if os.path.exists(f): 
                         os.remove(f)
