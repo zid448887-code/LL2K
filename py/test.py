@@ -2,17 +2,16 @@ import os
 import asyncio
 import time
 import tempfile
+import subprocess
 import streamlit as st
-import whisper
+from faster_whisper import WhisperModel
 from deep_translator import GoogleTranslator
 import edge_tts
-from moviepy.video.io.VideoFileClip import VideoFileClip
-from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 # Thiết lập trang
 st.set_page_config(page_title="翻译视频", page_icon="🎬", layout="centered")
 
-# Custom CSS
+# Custom CSS UI
 st.markdown("""
 <style>
     .main-header {
@@ -69,31 +68,54 @@ LANGUAGE_MAP = {
     "葡萄牙语": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
 }
 
+# Tách audio tốc độ cao bằng FFmpeg
 def extract_audio(video_path, audio_output_path):
-    video = VideoFileClip(video_path)
-    video.audio.write_audiofile(audio_output_path, logger=None)
-    video.audio.close()
-    video.close()
+    command = [
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-ar", "16000",
+        "-ac", "1",
+        audio_output_path
+    ]
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+# Model Whisper siêu nhẹ, siêu nhanh
 @st.cache_resource
 def load_whisper_model():
-    return whisper.load_model("base")
+    return WhisperModel("tiny", device="cpu", compute_type="int8")
 
 def transcribe_audio(audio_path):
     model = load_whisper_model()
-    result = model.transcribe(audio_path, task="transcribe")
-    return result.get('language', 'unknown'), result.get('text', '')
+    segments, info = model.transcribe(audio_path, beam_size=1)
+    text = " ".join([segment.text.strip() for segment in segments])
+    return info.language, text
 
+# Dịch văn bản an toàn (chia nhỏ nếu câu quá dài để tránh lỗi API)
 def translate_text(text, target_lang):
-    for attempt in range(3):
-        try:
-            return GoogleTranslator(source='auto', target=target_lang).translate(text)
-        except Exception as e:
-            if attempt == 2:
-                raise e
-            time.sleep(2)
+    if not text.strip():
+        return ""
+    
+    # Chia nhỏ văn bản theo độ dài 4000 ký tự
+    max_chunk = 4000
+    chunks = [text[i:i + max_chunk] for i in range(0, len(text), max_chunk)]
+    translated_chunks = []
+    
+    for chunk in chunks:
+        for attempt in range(3):
+            try:
+                res = GoogleTranslator(source='auto', target=target_lang).translate(chunk)
+                translated_chunks.append(res)
+                break
+            except Exception as e:
+                if attempt == 2:
+                    raise e
+                time.sleep(1)
+                
+    return " ".join(translated_chunks)
 
-# Fix Asyncio cho Streamlit
+# Tạo giọng nói không lo bị treo Loop Asyncio
 def run_tts_sync(text, output_audio_path, voice):
     async def _tts():
         communicate = edge_tts.Communicate(text, voice)
@@ -106,23 +128,23 @@ def run_tts_sync(text, output_audio_path, voice):
     finally:
         loop.close()
 
+# Ghép Audio vào Video cực nhanh (Copy stream, không render lại video)
 def merge_audio_to_video(video_path, new_audio_path, output_video_path):
-    video = VideoFileClip(video_path)
-    new_audio = AudioFileClip(new_audio_path)
-    
-    if hasattr(video, "with_audio"):
-        final_video = video.with_audio(new_audio)
-    else:
-        final_video = video.set_audio(new_audio)
-        
-    final_video.write_videofile(output_video_path, codec="libx264", audio_codec="aac", logger=None)
-    
-    final_video.close()
-    video.close()
-    new_audio.close()
+    command = [
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-i", new_audio_path,
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-shortest",
+        output_video_path
+    ]
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # Giao diện chính
-st.markdown("<div class='main-header'><h1>🎬 翻译视频</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>🎬 翻译视频 (极速版)</h1><p>请上传视频，系统自动翻译!</p></div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([5, 1])
 with col2:
@@ -137,11 +159,10 @@ if uploaded_file is not None:
     st.video(uploaded_file)
     if st.button("开始视频处理"):
         with st.spinner("正在处理……请稍候..."):
-            # Tạo thư mục tạm an toàn
             with tempfile.TemporaryDirectory() as temp_dir:
                 input_video_path = os.path.join(temp_dir, "temp_input.mp4")
                 output_video_path = os.path.join(temp_dir, "temp_output.mp4")
-                temp_audio = os.path.join(temp_dir, "temp_original_audio.mp3")
+                temp_audio = os.path.join(temp_dir, "temp_original_audio.wav")
                 temp_translated_audio = os.path.join(temp_dir, "temp_translated_audio.mp3")
 
                 with open(input_video_path, "wb") as f:
@@ -151,7 +172,7 @@ if uploaded_file is not None:
                     st.text("从视频中提取音频...")
                     extract_audio(input_video_path, temp_audio)
                     
-                    st.text("利用人工智能分析和识别语音...")
+                    st.text("利用 AI 极速分析和识别语音...")
                     detected_lang, original_text = transcribe_audio(temp_audio)
                     st.info(f"本源语言: **{detected_lang}**")
                     
