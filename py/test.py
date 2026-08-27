@@ -116,7 +116,7 @@ if uploaded_file is not None:
                 progress_bar.progress(20)
                 extract_audio(input_video, audio_path)
                 
-                status_text.text("AI Whisper 正在分析语音和时机。...")
+                status_text.text("你的杰哥 正在分析语音和时机。...")
                 progress_bar.progress(40)
                 model = load_whisper_model()
                 segments, info = model.transcribe(audio_path, beam_size=5)
@@ -146,7 +146,7 @@ if uploaded_file is not None:
                     asyncio.run(text_to_speech_file(trans_text, target_voice, part_audio))
                     translated_audio_parts.append(part_audio)
 
-                st.write(" **原版 (Transcript):**")
+                st.write(" **原版:**")
                 st.code("\n".join(original_transcript), language=None)
                 
                 st.write(" **相应的翻译:**")
