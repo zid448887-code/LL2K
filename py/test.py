@@ -148,7 +148,7 @@ if uploaded_file is not None:
                     asyncio.run(text_to_speech_file(trans_text, target_voice, part_audio))
                     translated_audio_parts.append(part_audio)
 
-                st.write(f" **原版 (检测到的语言: {detected_lang} - độ chính xác: {detected_lang_prob:.2f}):**")
+                st.write(f" **原版 (检测到的语言: {detected_lang} - 精准: {detected_lang_prob:.2f}):**")
                 st.code("\n".join(original_transcript), language=None)
                 
                 st.write(f" **相应的翻译 (目标语言: {selected_language_name}):**")
