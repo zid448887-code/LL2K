@@ -38,15 +38,15 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    st.markdown("<div class='main-header'><h1>🔐 Đăng nhập hệ thống</h1><p>Vui lòng nhập mật khẩu để tiếp tục</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='main-header'><h1>登录</h1><p>请输入密码</p></div>", unsafe_allow_html=True)
     with st.form("login_form"):
-        pwd_input = st.text_input("Mật khẩu:", type="password")
-        if st.form_submit_button("Đăng nhập"):
+        pwd_input = st.text_input("密码:", type="password")
+        if st.form_submit_button("登录"):
             if pwd_input == APP_PASSWORD:
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
-                st.error("Sai mật khẩu!")
+                st.error("密码错误!")
     st.stop()
 
 LANGUAGE_MAP = {
