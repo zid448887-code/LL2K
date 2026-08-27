@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 import translators as ts
 import edge_tts
 
-st.set_page_config(page_title="AI Video Translator Pro", page_icon="🎬", layout="centered")
+st.set_page_config(page_title="AI Video Translator Pro", page_icon="🔝", layout="centered")
 
 st.markdown("""
 <style>
