@@ -52,15 +52,15 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 LANGUAGE_MAP = {
-    "越南": {"lang": "vi", "voice": "vi-VN-HoaiMyNeural"},
-    "英语": {"lang": "en", "voice": "en-US-AriaNeural"},
-    "中文 (简体)": {"lang": "zh-Hans", "voice": "zh-CN-XiaoxiaoNeural"},
-    "日语": {"lang": "ja", "voice": "ja-JP-NanamiNeural"},
-    "韩语": {"lang": "ko", "voice": "ko-KR-SunHiNeural"},
-    "西班牙语": {"lang": "es", "voice": "es-ES-ElviraNeural"},
-    "法语": {"lang": "fr", "voice": "fr-FR-DeniseNeural"},
-    "俄语": {"lang": "ru", "voice": "ru-RU-SvetlanaNeural"},
-    "葡萄牙语": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
+    "越南🇻🇳": {"lang": "vi", "voice": "vi-VN-HoaiMyNeural"},
+    "英语🏴󠁧󠁢󠁥󠁮󠁧󠁿": {"lang": "en", "voice": "en-US-AriaNeural"},
+    "中文 (简体)🇨🇳": {"lang": "zh-Hans", "voice": "zh-CN-XiaoxiaoNeural"},
+    "日语🇯🇵": {"lang": "ja", "voice": "ja-JP-NanamiNeural"},
+    "韩语🇰🇷": {"lang": "ko", "voice": "ko-KR-SunHiNeural"},
+    "西班牙语🇪🇸": {"lang": "es", "voice": "es-ES-ElviraNeural"},
+    "法语🇫🇷": {"lang": "fr", "voice": "fr-FR-DeniseNeural"},
+    "俄语🇷🇺": {"lang": "ru", "voice": "ru-RU-SvetlanaNeural"},
+    "葡萄牙语🇵🇹": {"lang": "pt", "voice": "pt-BR-FranciscaNeural"}
 }
 
 def extract_audio(video_path, audio_output_path):
