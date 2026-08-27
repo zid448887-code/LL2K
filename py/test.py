@@ -88,14 +88,14 @@ async def text_to_speech_file(text, voice, out_path):
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(out_path)
 
-st.markdown("<div class='main-header'><h1>🚀 AI Video Translator Pro</h1><p>Dịch và lồng tiếng video thông minh tự động</p></div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'><h1>系统翻译视频</h1><p></p></div>", unsafe_allow_html=True)
 
-if st.button("Đăng xuất"):
+if st.button("退出"):
     st.session_state["authenticated"] = False
     st.rerun()
 
-uploaded_file = st.file_uploader("Chọn video của bạn (MP4, AVI, MOV):", type=["mp4", "avi", "mov"])
-selected_language_name = st.selectbox("Chọn ngôn ngữ đích:", list(LANGUAGE_MAP.keys()))
+uploaded_file = st.file_uploader("筛选视频 (MP4, AVI, MOV):", type=["mp4", "avi", "mov"])
+selected_language_name = st.selectbox("筛选语言:", list(LANGUAGE_MAP.keys()))
 
 if uploaded_file is not None:
     st.video(uploaded_file)
