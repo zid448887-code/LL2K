@@ -122,6 +122,9 @@ if uploaded_file is not None:
                 segments, info = model.transcribe(audio_path, beam_size=5)
                 
                 segment_list = list(segments)
+                detected_lang = info.language
+                detected_lang_prob = info.language_probability
+                
                 target_lang_code = LANGUAGE_MAP[selected_language_name]["lang"]
                 target_voice = LANGUAGE_MAP[selected_language_name]["voice"]
                 
@@ -140,16 +143,15 @@ if uploaded_file is not None:
                     
                     trans_text = translate_text(orig_text, target_lang_code)
                     translated_transcript.append(trans_text)
-
                     
                     part_audio = os.path.join(temp_dir, f"part_{i}.mp3")
                     asyncio.run(text_to_speech_file(trans_text, target_voice, part_audio))
                     translated_audio_parts.append(part_audio)
 
-                st.write(" **原版:**")
+                st.write(f" **原版 (检测到的语言: {detected_lang} - độ chính xác: {detected_lang_prob:.2f}):**")
                 st.code("\n".join(original_transcript), language=None)
                 
-                st.write(" **相应的翻译:**")
+                st.write(f" **相应的翻译 (目标语言: {selected_language_name}):**")
                 st.code("\n".join(translated_transcript), language=None)
                 
                 status_text.text("目前正在合成并组装完整的音频。...")
@@ -180,7 +182,7 @@ if uploaded_file is not None:
                 progress_bar.progress(100)
                 status_text.text("视频处理成功!")
                 
-                st.success("好了！您可以观看或下载下方的视频。:")
+                st.success("好了！您可以观看 or 下载下方的视频。:")
                 with open(output_video, "rb") as vf:
                     video_bytes = vf.read()
                     st.video(video_bytes)
