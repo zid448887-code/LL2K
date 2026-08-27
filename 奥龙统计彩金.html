@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿杰</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        textarea {
+            height: 200px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        input[type="text"] {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-right: 5px;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #4b5563;
+        }
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        tr.total-row {
+            background-color: #eef2ff !important;
+            font-weight: bold;
+            color: #312e81;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .delete-btn {
+            background-color: #ef4444;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+
+        .batch-delete-btn {
+            background-color: #dc2626;
+        }
+        .batch-delete-btn:hover {
+            background-color: #b91c1c;
+        }
+
+        .edit-btn {
+            background-color: #f59e0b;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .edit-btn:hover {
+            background-color: #d97706;
+        }
+
+        .note-info {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .collapsible-content {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 style="text-align: center;">奥龙统计彩金</h1>
+
+    <div class="card">
+        <h2>1.备注管理 </h2>
+        <p>批量导入（每边最多 1000 行）。系统将逐行自动同步。</p>
+        
+        <div class="grid-2">
+            <div>
+                <label for="ptRemarks">海外备注内容:</label>
+                <textarea id="ptRemarks" placeholder="请输入海外备注（一行一个）..."></textarea>
+            </div>
+            <div>
+                <label for="cnRemarks">中文备注内容:</label>
+                <textarea id="cnRemarks" placeholder="请输入中国备注（一行一个）..."></textarea>
+            </div>
+        </div>
+        <button onclick="saveDictionary()">保存到系统内存</button>
+        <button class="btn-secondary" onclick="toggleDictSection()">隐藏<->显示 系统备注内用</button>
+
+        <div id="dictSectionContainer" class="collapsible-content" style="margin-top: 15px;">
+            <h3>系统备注内用</h3>
+
+            <input type="text" id="searchDictInput" placeholder="🔍 输入关键字搜索海外备注或中文备注..." onkeyup="filterDictionary()">
+            
+            <!-- Nút điều khiển xóa hàng loạt -->
+            <div style="margin-bottom: 10px;">
+                <button class="btn-secondary" onclick="toggleSelectAll(true)" style="padding: 5px 10px; font-size: 12px;">全选</button>
+                <button class="btn-secondary" onclick="toggleSelectAll(false)" style="padding: 5px 10px; font-size: 12px;">取消全选</button>
+                <button class="batch-delete-btn" onclick="deleteSelectedItems()" style="padding: 5px 10px; font-size: 12px;">删除所选行</button>
+            </div>
+
+            <div class="table-responsive">
+                <table id="dictTable">
+                    <thead>
+                        <tr>
+                            <th width="40"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this.checked)"></th>
+                            <th>STT</th>
+                            <th>海外备注</th>
+                            <th>中文备注</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dữ liệu render bằng JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. 上传表格 (Excel & CSV)</h2>
+        <label for="fileUpload">筛选 file:</label>
+        <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv, .txt">
+        <div class="note-info">所有格式: <b>.xlsx, .xls, .csv</b>. 分开格式: <b>顶级账号</b> , <b>备注</b> , và <b>金额</b> .</div>
+        <button onclick="processFile()">开始计算</button>
+    </div>
+
+    <div class="card">
+        <h2>3. 数据表</h2>
+        <div class="table-responsive">
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>顶级账号</th>
+                        <th>佣金</th>
+                        <th>报销</th>
+                        <th>代理薪资</th>
+                        <th>合作店铺工资</th>
+                        <th>退款</th>
+                        <th>任务奖励</th>
+                        <th>合作店铺奖励</th>
+                        <th>兑换中奖</th>
+                        <th>邀请奖励</th>
+                        <th>补贴彩金</th>
+                        <th>中奖奖品</th>
+                        <th>其他/未分类</th>
+                        <th>垫资</th>
+                        <th>总彩金</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="15">无数据，请上传表格.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+    const STORAGE_KEY = "AGENT_REMARKS_DICTIONARY";
+
+    const categories = [
+        "佣金", "报销", "代理薪资", "合作店铺工资", "退款", 
+        "任务奖励", "合作店铺奖励", "兑换中奖", "邀请奖励", 
+        "补贴彩金", "中奖奖品", "其他/未分类", "垫资"
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDictionaryToUI();
+    });
+
+    function toggleDictSection() {
+        const container = document.getElementById("dictSectionContainer");
+        if (container.style.display === "none") {
+            container.style.display = "block";
+        } else {
+            container.style.display = "none";
+        }
+    }
+
+    function saveDictionary() {
+        const ptText = document.getElementById("ptRemarks").value.trim();
+        const cnText = document.getElementById("cnRemarks").value.trim();
+
+        const ptLines = ptText ? ptText.split("\n") : [];
+        const cnLines = cnText ? cnText.split("\n") : [];
+
+        let dictionary = getStoredDictionary();
+
+        const maxLen = Math.max(ptLines.length, cnLines.length);
+        for (let i = 0; i < maxLen; i++) {
+            let pt = ptLines[i] ? ptLines[i].trim() : "";
+            let cn = cnLines[i] ? cnLines[i].trim() : "";
+            if (pt || cn) {
+                dictionary.push({ pt, cn });
+            }
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dictionary));
+        
+        document.getElementById("ptRemarks").value = "";
+        document.getElementById("cnRemarks").value = "";
+
+        loadDictionaryToUI();
+        alert("已成功保存到系统内存!");
+    }
+
+    function getStoredDictionary() {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+    }
+
+    function loadDictionaryToUI() {
+        const dictionary = getStoredDictionary();
+        const tbody = document.querySelector("#dictTable tbody");
+        tbody.innerHTML = "";
+
+        // Bỏ chọn ô "Chọn tất cả" ở tiêu đề mỗi khi load lại bảng
+        document.getElementById("selectAllCheckbox").checked = false;
+
+        if (dictionary.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5">无备注内用.</td></tr>`;
+            return;
+        }
+
+        dictionary.forEach((item, index) => {
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-pt", item.pt.toLowerCase());
+            tr.setAttribute("data-cn", item.cn.toLowerCase());
+            tr.innerHTML = `
+                <td><input type="checkbox" class="row-checkbox" value="${index}"></td>
+                <td>${index + 1}</td>
+                <td>${item.pt}</td>
+                <td>${item.cn}</td>
+                <td>
+                    <button class="edit-btn" onclick="editDictItem(${index})">修改</button>
+                    <button class="delete-btn" onclick="deleteDictItem(${index})">删掉</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        filterDictionary();
+    }
+
+    // Chọn hoặc bỏ chọn tất cả các hàng hiển thị (tuân theo bộ lọc tìm kiếm)
+    function toggleSelectAll(select) {
+        document.getElementById("selectAllCheckbox").checked = select;
+        const visibleRows = document.querySelectorAll("#dictTable tbody tr");
+        visibleRows.forEach(tr => {
+            if (tr.style.display !== "none") {
+                const checkbox = tr.querySelector(".row-checkbox");
+                if (checkbox) checkbox.checked = select;
+            }
+        });
+    }
+
+    // Xóa hàng loạt những dòng đã được tích chọn
+    function deleteSelectedItems() {
+        const checkboxes = document.querySelectorAll(".row-checkbox:checked");
+        if (checkboxes.length === 0) {
+            alert("请先勾选要删除的行！");
+            return;
+        }
+
+        if (!confirm(`确定要删除选中的 ${checkboxes.length} 行吗？`)) {
+            return;
+        }
+
+        let dictionary = getStoredDictionary();
+        // Lấy danh sách index cần xóa và sắp xếp giảm dần để khi splice không bị lệch index
+        const indicesToDelete = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => b - a);
+
+        indicesToDelete.forEach(index => {
+            dictionary.splice(index, 1);
+        });
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dictionary));
+        loadDictionaryToUI();
+        alert("已成功删除所选项！");
+    }
+
+    function filterDictionary() {
+        const query = document.getElementById("searchDictInput").value.toLowerCase().trim();
+        const rows = document.querySelectorAll("#dictTable tbody tr");
+
+        rows.forEach(tr => {
+            const ptText = tr.getAttribute("data-pt") || "";
+            const cnText = tr.getAttribute("data-cn") || "";
+
+            if (!ptText && !cnText) return; 
+
+            if (ptText.includes(query) || cnText.includes(query)) {
+                tr.style.display = "";
+            } else {
+                tr.style.display = "none";
+            }
+        });
+    }
+
+    function editDictItem(index) {
+        let dictionary = getStoredDictionary();
+        const item = dictionary[index];
+
+        document.getElementById("ptRemarks").value = item.pt;
+        document.getElementById("cnRemarks").value = item.cn;
+
+        dictionary.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dictionary));
+        loadDictionaryToUI();
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        alert("数据已加载到输入框中。请编辑数据，然后点击“保存到系统存储”。");
+    }
+
+    function deleteDictItem(index) {
+        let dictionary = getStoredDictionary();
+        dictionary.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dictionary));
+        loadDictionaryToUI();
+    }
+
+    function processFile() {
+        const fileInput = document.getElementById("fileUpload");
+        if (fileInput.files.length === 0) {
+            alert("请先选择数据文件!");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const fileName = file.name.toLowerCase();
+
+        if (fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    calculateResults(results.data);
+                },
+                error: function(error) {
+                    alert("Lỗi khi đọc file CSV: " + error.message);
+                }
+            });
+        } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonResult = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                    calculateResults(jsonResult);
+                } catch (err) {
+                    alert("出现错误 file Excel: " + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            alert("文件格式不受支持！请选择 .xlsx、.xls 或 .csv 文件。");
+        }
+    }
+
+    function getRowValue(row, targetKey) {
+        for (let key of Object.keys(row)) {
+            if (key.trim() === targetKey) {
+                return row[key];
+            }
+        }
+        return "";
+    }
+
+    function calculateResults(data) {
+        const dictionary = getStoredDictionary();
+        const ptToCnMap = {};
+        dictionary.forEach(item => {
+            if(item.pt) ptToCnMap[item.pt.trim().toLowerCase()] = item.cn;
+        });
+
+        const stats = {};
+
+        data.forEach(row => {
+            let agent = String(getRowValue(row, "顶级账号") || "").trim();
+            if (!agent) {
+                agent = "总数据：";
+            }
+
+            const remarkPT = String(getRowValue(row, "备注") || "").trim();
+            const rawAmount = getRowValue(row, "金额");
+            const amount = parseFloat(String(rawAmount).replace(/,/g, '')) || 0;
+
+            let matchedCN = ptToCnMap[remarkPT.toLowerCase()] || remarkPT;
+
+            if (!categories.includes(matchedCN)) {
+                matchedCN = "其他/未分类";
+            }
+
+            if (!stats[agent]) {
+                stats[agent] = {};
+                categories.forEach(cat => stats[agent][cat] = 0);
+            }
+
+            stats[agent][matchedCN] += amount;
+        });
+
+        renderResults(stats);
+    }
+
+    function renderResults(stats) {
+        const tbody = document.querySelector("#resultTable tbody");
+        tbody.innerHTML = "";
+
+        let agents = Object.keys(stats);
+        if (agents.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="15">未找到数据。请确保您的 Excel 文件包含正确的列。: <b>顶级账号</b>, <b>备注</b>, <b>金额</b>.</td></tr>`;
+            return;
+        }
+
+        let hasTotalDataGroup = false;
+        if (agents.includes("总数据：")) {
+            hasTotalDataGroup = true;
+            agents = agents.filter(a => a !== "总数据：");
+        }
+
+        agents.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        const grandTotals = {};
+        categories.forEach(cat => grandTotals[cat] = 0);
+        let grandOverallTotal = 0;
+
+        agents.forEach(agent => {
+            const tr = document.createElement("tr");
+            let html = `<td><strong>${agent}</strong></td>`;
+            let rowTotal = 0;
+
+            categories.forEach(cat => {
+                const val = stats[agent][cat] || 0;
+                rowTotal += val;
+                grandTotals[cat] += val;
+                html += `<td>${val.toLocaleString()}</td>`;
+            });
+
+            grandOverallTotal += rowTotal;
+            html += `<td><strong>${rowTotal.toLocaleString()}</strong></td>`;
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
+        });
+
+        if (hasTotalDataGroup) {
+            categories.forEach(cat => {
+                grandTotals[cat] += (stats["总数据："][cat] || 0);
+            });
+            let unassignedRowTotal = 0;
+            categories.forEach(cat => {
+                unassignedRowTotal += (stats["总数据："][cat] || 0);
+            });
+            grandOverallTotal += unassignedRowTotal;
+        }
+
+        const totalTr = document.createElement("tr");
+        totalTr.className = "total-row";
+        let totalHtml = `<td><strong>总数据：</strong></td>`;
+
+        categories.forEach(cat => {
+            const val = grandTotals[cat];
+            totalHtml += `<td>${val.toLocaleString()}</td>`;
+        });
+        totalHtml += `<td><strong>${grandOverallTotal.toLocaleString()}</strong></td>`;
+        totalTr.innerHTML = totalHtml;
+        tbody.appendChild(totalTr);
+    }
+</script>
+
+</body>
+</html>
