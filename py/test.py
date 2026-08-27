@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 import translators as ts
 import edge_tts
 
-st.set_page_config(page_title="阿杰", page_icon="🌸", layout="centered")
+st.set_page_config(page_title="阿杰", page_icon="♦️", layout="centered")
 
 st.markdown("""
 <style>
@@ -38,7 +38,7 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    st.markdown("<div class='main-header'><h1>登录</h1><p>请输入密码</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='main-header'><h1>登录</h1><p>🔝请输入登录密码</p></div>", unsafe_allow_html=True)
     with st.form("login_form"):
         pwd_input = st.text_input("密码:", type="password")
         if st.form_submit_button("登录"):
