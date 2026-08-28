@@ -12,6 +12,7 @@
             --card-bg: #ffffff;
             --text-color: #1f2937;
             --border-color: #e5e7eb;
+
             --success-color: #10b981;
             --success-hover: #059669;
             --warning-color: #f59e0b;
@@ -112,7 +113,7 @@
         }
 
         table {
-            width: 100%;  
+            width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
             background: white;
@@ -130,7 +131,7 @@
             color: white;
         }
 
-        /* Riêng bảng phần 3 (数据表) có màu nền tiêu đề là màu vàng */
+        /* Riêng bảng phần 3 (数据表) có màu nền tiêu đề */
         #resultTable th {
             background-color: #00bbd4;
             color: #ffffff;
@@ -186,7 +187,7 @@
             transition: all 0.3s ease;
         }
 
-        /* CSS cho màn hình đăng nhập khóa trang */
+        /* Màn hình khóa đăng nhập */
         #authOverlay {
             position: fixed;
             top: 0;
@@ -215,14 +216,13 @@
             margin-bottom: 20px;
         }
 
-        /* Khung chứa input mật khẩu kèm icon con mắt */
         .password-container {
             position: relative;
             width: 100%;
         }
 
         .password-container input {
-            padding-right: 40px; /* Chừa khoảng trống cho icon con mắt */
+            padding-right: 40px;
             box-sizing: border-box;
             margin-bottom: 0;
         }
@@ -253,7 +253,6 @@
         
         <div class="password-container">
             <input type="password" id="accessPassword" placeholder="请输入密码..." onkeydown="if(event.key === 'Enter') checkPassword()">
-            <!-- SVG Con mắt (Mặc định ẩn mật khẩu -> hiển thị mắt nhắm/mắt gạch chéo hoặc mắt thường) -->
             <svg id="eyeIcon" class="toggle-password" onclick="togglePasswordVisibility()" viewBox="0 0 24 24">
                 <path id="eyePath" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
             </svg>
@@ -268,7 +267,7 @@
     <h1 style="text-align: center;">奥龙统计彩金</h1>
 
     <div class="card">
-        <h2>1.备注管理 </h2>
+        <h2>1. 备注管理 </h2>
         <p>批量导入（每边最多 1000 行）。系统将逐行自动同步。</p>
         
         <div class="grid-2">
@@ -282,14 +281,13 @@
             </div>
         </div>
         <button class="btn-success" onclick="saveDictionary()">保存到系统内存</button>
-        <button class="btn-secondary" onclick="toggleDictSection()">隐藏<->显示 系统备注内用</button>
+        <button class="btn-secondary" onclick="toggleDictSection()">隐藏/显示 系统备注内容</button>
 
         <div id="dictSectionContainer" class="collapsible-content" style="margin-top: 15px;">
-            <h3>系统备注内用</h3>
+            <h3>系统备注内容</h3>
 
             <input type="text" id="searchDictInput" placeholder="🔍 输入关键字搜索海外备注或中文备注..." onkeyup="filterDictionary()">
             
-            <!-- Nút điều khiển xóa hàng loạt -->
             <div style="margin-bottom: 10px;">
                 <button class="btn-success" onclick="toggleSelectAll(true)" style="padding: 5px 10px; font-size: 12px;">全选</button>
                 <button class="btn-warning" onclick="toggleSelectAll(false)" style="padding: 5px 10px; font-size: 12px;">取消全选</button>
@@ -319,7 +317,7 @@
         <h2>2. 上传表格 (Excel & CSV)</h2>
         <label for="fileUpload">筛选 file:</label>
         <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv, .txt">
-        <div class="note-info">所有格式: <b>.xlsx, .xls, .csv</b>. 分开格式: <b>顶级账号</b> , <b>备注</b> ,  <b>金额</b> .</div>
+        <div class="note-info">所有格式: <b>.xlsx, .xls, .csv</b>. 分开格式: <b>顶级账号</b> , <b>备注</b> , <b>金额</b> .</div>
         <button class="btn-success" onclick="processFile()">开始计算</button>
     </div>
 
@@ -361,6 +359,13 @@
 <script>
     const CORRECT_PASSWORD = "ajiechanbomaydi"; 
     const AUTH_SESSION_KEY = "SYSTEM_AUTHENTICATED_STATUS";
+    const STORAGE_KEY = "AGENT_REMARKS_DICTIONARY";
+
+    const categories = [
+        "佣金", "报销", "代理薪资", "合作店铺工资", "退款", 
+        "任务奖励", "合作店铺奖励", "兑换中奖", "邀请奖励", 
+        "补贴彩金", "中奖奖品", "其他/未分类", "垫资"
+    ];
 
     document.addEventListener("DOMContentLoaded", () => {
         if (sessionStorage.getItem(AUTH_SESSION_KEY) === "true") {
@@ -369,18 +374,15 @@
         loadDictionaryToUI();
     });
 
-    // Hàm ẩn/hiện mật khẩu và đổi icon con mắt
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById("accessPassword");
         const eyePath = document.getElementById("eyePath");
 
         if (passwordInput.type === "password") {
             passwordInput.type = "text";
-            // Icon con mắt bị gạch chéo / mở (Hiển thị mật khẩu)
             eyePath.setAttribute("d", "M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.12c0-1.66-1.34-3-3-3l-.17.02z");
         } else {
             passwordInput.type = "password";
-            // Icon con mắt bình thường (Ẩn mật khẩu)
             eyePath.setAttribute("d", "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z");
         }
     }
@@ -398,21 +400,9 @@
         }
     }
 
-    const STORAGE_KEY = "AGENT_REMARKS_DICTIONARY";
-
-    const categories = [
-        "佣金", "报销", "代理薪资", "合作店铺工资", "退款", 
-        "任务奖励", "合作店铺奖励", "兑换中奖", "邀请奖励", 
-        "补贴彩金", "中奖奖品", "其他/未分类", "垫资"
-    ];
-
     function toggleDictSection() {
         const container = document.getElementById("dictSectionContainer");
-        if (container.style.display === "none") {
-            container.style.display = "block";
-        } else {
-            container.style.display = "none";
-        }
+        container.style.display = (container.style.display === "none") ? "block" : "none";
     }
 
     function saveDictionary() {
@@ -456,7 +446,7 @@
         if (selectAllCb) selectAllCb.checked = false;
 
         if (dictionary.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5">无备注内用.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5">无备注内容.</td></tr>`;
             return;
         }
 
@@ -518,6 +508,7 @@
         const searchInput = document.getElementById("searchDictInput");
         if (!searchInput) return;
         const query = searchInput.value.toLowerCase().trim();
+
         const rows = document.querySelectorAll("#dictTable tbody tr");
 
         rows.forEach(tr => {
@@ -546,7 +537,7 @@
         loadDictionaryToUI();
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        alert("数据已加载到输入框中。请编辑数据，然后点击“保存到系统存储”。");
+        alert("数据已加载到输入框中。请编辑数据，然后点击“保存到系统内存”。");
     }
 
     function deleteDictItem(index) {
