@@ -358,7 +358,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
     const CORRECT_PASSWORD = "ajiechanbomaydi"; 
-    const AUTH_SESSION_KEY = "SYSTEM_AUTHENTICATED_STATUS";
     const STORAGE_KEY = "AGENT_REMARKS_DICTIONARY";
 
     const categories = [
@@ -368,9 +367,7 @@
     ];
 
     document.addEventListener("DOMContentLoaded", () => {
-        if (sessionStorage.getItem(AUTH_SESSION_KEY) === "true") {
-            document.getElementById("authOverlay").style.display = "none";
-        }
+        // Không lưu trạng thái gì cả, F5 xong là màn hình khóa luôn hiển thị
         loadDictionaryToUI();
     });
 
@@ -392,7 +389,7 @@
         const errorMsg = document.getElementById("errorMsg");
 
         if (inputVal === CORRECT_PASSWORD) {
-            sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+            // Chỉ ẩn màn hình khóa đi khi nhập đúng trong phiên làm việc hiện tại, không lưu vào bộ nhớ tạm
             document.getElementById("authOverlay").style.display = "none";
         } else {
             errorMsg.textContent = "密码错误，请重试！";
