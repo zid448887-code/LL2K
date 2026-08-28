@@ -131,7 +131,6 @@
             color: white;
         }
 
-        /* Riêng bảng phần 3 (数据表) có màu nền tiêu đề */
         #resultTable th {
             background-color: #00bbd4;
             color: #ffffff;
@@ -245,7 +244,6 @@
 </head>
 <body>
 
-<!-- Màn hình khóa mật khẩu -->
 <div id="authOverlay">
     <div class="auth-box">
         <h2>系统安全验证</h2>
@@ -367,7 +365,6 @@
     ];
 
     document.addEventListener("DOMContentLoaded", () => {
-        // Không lưu trạng thái gì cả, F5 xong là màn hình khóa luôn hiển thị
         loadDictionaryToUI();
     });
 
@@ -389,7 +386,6 @@
         const errorMsg = document.getElementById("errorMsg");
 
         if (inputVal === CORRECT_PASSWORD) {
-            // Chỉ ẩn màn hình khóa đi khi nhập đúng trong phiên làm việc hiện tại, không lưu vào bộ nhớ tạm
             document.getElementById("authOverlay").style.display = "none";
         } else {
             errorMsg.textContent = "密码错误，请重试！";
